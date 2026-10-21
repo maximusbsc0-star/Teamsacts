@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Team Activity Portal</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f5f9;color:#1e293b}
+header{background:#123c69;color:#fff;text-align:center;padding:18px;position:relative}
+header h1{margin:0;font-size:22px}header p{margin:6px 0 0;font-size:13px}
+#bell{position:absolute;right:14px;top:14px;width:46px;height:46px;border-radius:50%;background:#ffffff22;border:none;font-size:22px;cursor:pointer;margin:0;padding:0;color:#fff}
+#badge{position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;border-radius:10px;font-size:12px;min-width:20px;padding:2px 5px}
+.ring{animation:ring .5s 4}
+@keyframes ring{0%,100%{transform:rotate(0)}25%{transform:rotate(18deg)}75%{transform:rotate(-18deg)}}
+.container{width:92%;max-width:850px;margin:20px auto}
+.card{background:#fff;padding:20px;border-radius:12px;margin-bottom:18px;box-shadow:0 3px 12px #0001}
+input,textarea,button,select{width:100%;padding:12px;margin:6px 0;border-radius:6px;border:1px solid #cbd5e1;font-size:15px;font-family:inherit}
+button{background:#2563eb;color:#fff;border:none;cursor:pointer;font-weight:bold}
+button:hover{opacity:.85}
+.done{background:#15803d}.reject{background:#dc2626}.logout{background:#475569}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+nav button{width:auto;flex:1;min-width:110px;background:#e2e8f0;color:#123c69;margin:0}
+nav button.on{background:#123c69;color:#fff}
+.item{border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin:10px 0;overflow-wrap:anywhere}
+.item img{max-width:100%;max-height:300px;display:block;margin:10px 0;border-radius:8px}
+.status{font-weight:bold}.hidden{display:none}small{color:#64748b}
+.alert{background:#fef3c7;border:1px solid #f59e0b;padding:12px;border-radius:8px;margin-bottom:14px;font-weight:bold}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid #e2e8f0;padding:8px;text-align:left}th{background:#f8fafc}
+.ok{color:#15803d;font-weight:bold}.no{color:#dc2626;font-weight:bold}
+</style>
+</head>
+<body>
+<header>
+<h1>👥 Team Activity Portal</h1>
+<p>Activities • Attendance • Complaints • Fines</p>
+<button id="bell" class="hidden" onclick="bellClick()" aria-label="Notifications">🔔<span id="badge" class="hidden"></span></button>
+</header>
+<div class="container">
+
+<div class="card" id="loginPage">
+<h2>🔐 Login</h2>
+<label>Username</label>
+<input id="username" placeholder="Example: MS joyal" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+<label>Password</label>
+<input id="password" type="password" placeholder="Enter password" autocapitalize="off" autocorrect="off" spellcheck="false">
+<button onclick="login()">Login</button>
+<p id="loginMessage"></p>
+</div>
+
+<div id="app" class="hidden">
+<div class="card">
+<h2 id="welcome"></h2>
+<button class="logout" onclick="logout()">Logout</button>
+</div>
+<div id="alertBox"></div>
+<nav id="nav"></nav>
+
+<!-- Activities (student upload) -->
+<div id="t-act" class="tab">
+<div class="card" id="uploadCard">
+<h3>📸 Upload Daily Activity</h3>
+<input id="aTitle" placeholder="Activity title">
+<textarea id="aDesc" placeholder="Describe today’s activity"></textarea>
+<input type="date" id="aDate">
+<label>📷 Take Photo (camera)</label>
+<input type="file" id="aCam" accept="image/*" capture="environment">
+<label>🖼️ Or choose from gallery</label>
+<input type="file" id="aPhoto" accept="image/*">
+<button onclick="submitActivity()">Submit Activity</button>
+<p id="aMsg"></p>
+</div>
+<div class="card"><h3 id="actTitle">📋 Activities</h3><div id="actList"></div></div>
+</div>
+
+<!-- Attendance -->
+<div id="t-att" class="tab hidden">
+<div class="card" id="markCard">
+<h3>🔔 Today’s Attendance</h3>
+<p id="attStatus"></p>
+<button id="markBtn" onclick="markAttendance()">Mark Present Today</button>
+</div>
+<div class="card">
+<h3 id="attTitle">📅 Attendance</h3>
+<input type="date" id="attDate" onchange="renderAttendance()">
+<div class="tw" id="attList"></div>
+</div>
+</div>
+
+<!-- Complaints -->
+<div id="t-cmp" class="tab hidden">
+<div class="card" id="cmpForm">
+<h3>⚖️ Raise a Complaint / Case</h3>
+<input type="date" id="cDate">
+<textarea id="cText" placeholder="Describe the case or complaint"></textarea>
+<button onclick="submitComplaint()">Submit Complaint</button>
+<p id="cMsg"></p>
+</div>
+<div class="card"><h3 id="cmpTitle">📂 Cases</h3><div id="cmpList"></div></div>
+</div>
+
+<!-- Fines -->
+<div id="t-fin" class="tab hidden">
+<div class="card" id="fineForm">
+<h3>💰 Add Fine</h3>
+<select id="fWho"></select>
+<input type="number" id="fAmt" min="1" placeholder="Amount (₹)">
+<input id="fReason" placeholder="Reason">
+<input type="date" id="fDate">
+<button onclick="addFine()">Add Fine</button>
+</div>
+<div class="card"><h3>💰 Fine Collection</h3><p id="fSum"></p><div class="tw" id="fList"></div></div>
+</div>
+
+<!-- Gallery -->
+<div id="t-gal" class="tab hidden">
+<div class="card">
+<h3>📷 Add Photo</h3>
+<label>📷 Take Photo (camera)</label>
+<input type="file" id="gCam" accept="image/*" capture="environment">
+<label>🖼️ Or choose from gallery</label>
+<input type="file" id="gFile" accept="image/*">
+<input id="gCap" placeholder="Caption (optional)">
+<button onclick="addPhoto()">Upload Photo</button>
+<p id="gMsg"></p>
+</div>
+<div class="card"><h3>🖼️ Team Gallery</h3><small id="gNote"></small><div id="gGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:10px"></div></div>
+</div>
+
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.min.js"></script>
+<script>
+/* DEMO ONLY: usernames and passwords are visible to anyone who views this page's source. Data is stored per browser. */
+const NAMES=["MS joyal","MS sibi","MS joshna","MS pooja","MS maxvel","MS dinesh","MS vibiya","MS hamenth","MS jesica"];
+const PASS=["t01","t02","t03","t04","t05","t06","t07","t08","t09"];
+const users={"ms maxi":{name:"MS maxi",password:"MS1",role:"leader"}};
+NAMES.forEach((n,i)=>{users[n.toLowerCase()]={name:n,password:PASS[i],role:"student"}});
+
+let db={activities:[],attendance:{},complaints:[],fines:[]};
+try{const s=JSON.parse(localStorage.getItem("teamPortalV2")||"null");if(s)db=Object.assign(db,s)}catch(e){}
+const save=()=>{try{localStorage.setItem("teamPortalV2",JSON.stringify(db))}catch(e){}};
+const today=()=>new Date().toLocaleDateString("en-CA");
+const $=id=>document.getElementById(id);
+const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+let me=null,tab="act";
+
+function login(){
+  const u=users[$("username").value.trim().toLowerCase()];
+  if(!u||u.password!==$("password").value.trim()){$("loginMessage").textContent="Invalid username or password!";return}
+  me=u;$("loginPage").classList.add("hidden");$("app").classList.remove("hidden");$("bell").classList.remove("hidden");
+  $("welcome").textContent=(me.role==="leader"?"👨‍💼 Team Leader: ":"🎓 Welcome, ")+me.name;
+  ["uploadCard"].forEach(i=>$(i).classList.toggle("hidden",me.role==="leader"));
+  $("markCard").classList.toggle("hidden",me.role==="leader");
+  $("cmpForm").classList.toggle("hidden",me.role==="leader");
+  $("fineForm").classList.toggle("hidden",me.role!=="leader");
+  $("fWho").innerHTML=NAMES.map(n=>`<option>${n}</option>`).join("");
+  ["aDate","cDate","fDate","attDate"].forEach(i=>$(i).value=today());
+  $("nav").innerHTML=[["act","📸 Activities"],["att","🔔 Attendance"],["cmp","⚖️ Complaints"],["fin","💰 Fines"],["gal","🖼️ Gallery"]]
+    .map(t=>`<button id="n-${t[0]}" onclick="showTab('${t[0]}')">${t[1]}</button>`).join("");
+  showTab(me.role==="student"&&!marked()?"att":"act");
+  refreshBell(true);
+}
+function logout(){me=null;$("app").classList.add("hidden");$("bell").classList.add("hidden");$("loginPage").classList.remove("hidden");$("username").value="";$("password").value="";$("loginMessage").textContent=""}
+function showTab(t){tab=t;document.querySelectorAll(".tab").forEach(e=>e.classList.add("hidden"));$("t-"+t).classList.remove("hidden");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.id==="n-"+t));renderAll()}
+function renderAll(){renderActs();renderAttendance();renderComplaints();renderFines();renderGallery();refreshBell(false)}
+
+/* Bell */
+function marked(){return !!(db.attendance[today()]||{})[me.name]}
+function pendingCount(){return me.role==="leader"?db.complaints.filter(c=>c.status==="Open").length:(marked()?0:1)}
+function refreshBell(ring){
+  const n=pendingCount(),b=$("badge");b.textContent=n;b.classList.toggle("hidden",!n);
+  $("alertBox").innerHTML=!n?"":me.role==="leader"?`<div class="alert">🔔 ${n} open complaint(s) need your attention.</div>`
+    :`<div class="alert">🔔 Please mark your attendance for today (${today()}).</div>`;
+  if(ring&&n){$("bell").classList.remove("ring");void $("bell").offsetWidth;$("bell").classList.add("ring");beep()}
+}
+function bellClick(){showTab(me.role==="leader"?"cmp":"att");beep()}
+function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();
+  o.frequency.value=880;g.gain.value=.15;o.connect(g);g.connect(a.destination);o.start();
+  g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.6);o.stop(a.currentTime+.6)}catch(e){}}
+
+/* Activities */
+function shrink(f,cb,err){const u=URL.createObjectURL(f),im=new Image(),E=err||alert;im.onload=()=>{try{const s=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);cb(c.toDataURL("image/jpeg",.7))}catch(e){E("Photo error: "+e.message)}};im.onerror=()=>E("Could not read this photo. Try a JPG or PNG image.");im.src=u}
+function submitActivity(){
+  const t=$("aTitle").value.trim(),d=$("aDesc").value.trim(),dt=$("aDate").value,f=$("aCam").files[0]||$("aPhoto").files[0];
+  if(!t||!d||!dt){alert("Please fill in the title, description and date.");return}
+  if(f&&!f.type.startsWith("image/")){alert("Please choose an image file.");return}
+  const add=p=>{db.activities.push({id:Date.now()+""+Math.random().toString(16).slice(2),student:me.name,title:t,description:d,date:dt,photo:p,status:"Pending",feedback:""});
+    save();$("aTitle").value=$("aDesc").value=$("aPhoto").value=$("aCam").value="";$("aMsg").textContent="Activity submitted successfully!";renderActs()};
+  if(f)shrink(f,add);else add("");
+}
+function renderActs(){
+  if(!me)return;const L=me.role==="leader",list=db.activities.filter(a=>L||a.student===me.name);
+  $("actTitle").textContent=L?"📝 All Student Activities":"📋 My Activities";
+  $("actList").innerHTML=!list.length?"<p>No activities yet.</p>":list.map(a=>`<div class="item"><h3>${esc(a.title)}</h3>
+    ${L?`<p><b>Student:</b> ${esc(a.student)}</p>`:""}<p>${esc(a.description)}</p><p>Date: ${esc(a.date)}</p>
+    ${a.photo?`<img src="${a.photo}" alt="Activity photo">`:""}<p class="status">Status: ${esc(a.status)}</p>
+    ${a.feedback&&!L?`<p>Leader Feedback: ${esc(a.feedback)}</p>`:""}
+    ${L?`${a.status==="Pending"?`<button class="done" onclick="setAct('${a.id}','Done')">Mark as Done</button><button class="reject" onclick="setAct('${a.id}','Rejected')">Reject</button>`:""}
+    <input id="fb-${a.id}" value="${esc(a.feedback)}" placeholder="Feedback"><button onclick="saveFb('${a.id}')">Save Feedback</button>`:""}</div>`).join("");
+}
+function setAct(id,s){if(me.role!=="leader")return;const a=db.activities.find(x=>x.id===id);if(a){a.status=s;save();renderActs()}}
+function saveFb(id){if(me.role!=="leader")return;const a=db.activities.find(x=>x.id===id);if(a){a.feedback=$("fb-"+id).value.trim();save();renderActs()}}
+
+/* Attendance */
+function markAttendance(){
+  if(me.role!=="student"||marked())return;
+  const d=today();db.attendance[d]=db.attendance[d]||{};db.attendance[d][me.name]=new Date().toLocaleTimeString();save();renderAll();
+}
+function renderAttendance(){
+  if(!me)return;const L=me.role==="leader";
+  if(!L){const m=marked();$("attStatus").innerHTML=m?`<span class="ok">✅ Present — marked at ${esc(db.attendance[today()][me.name])}</span>`:`<span class="no">❌ Not marked yet for ${today()}</span>`;$("markBtn").classList.toggle("hidden",m)}
+  const d=$("attDate").value||today(),rec=db.attendance[d]||{},who=L?NAMES:[me.name];
+  $("attTitle").textContent=L?"📅 Team Attendance":"📅 My Attendance";
+  const days=Object.keys(db.attendance).length;
+  $("attList").innerHTML=`<table><tr><th>Member</th><th>${esc(d)}</th><th>Days present</th></tr>`+who.map(n=>`<tr><td>${n}</td>
+    <td>${rec[n]?`<span class="ok">Present (${esc(rec[n])})</span>`:'<span class="no">Absent / not marked</span>'}</td>
+    <td>${Object.values(db.attendance).filter(x=>x[n]).length} / ${days}</td></tr>`).join("")+"</table>";
+}
+
+/* Complaints */
+function submitComplaint(){
+  const t=$("cText").value.trim(),d=$("cDate").value;if(!t||!d){alert("Enter the date and the case details.");return}
+  db.complaints.push({id:Date.now()+"",by:me.name,date:d,text:t,status:"Open",note:""});save();$("cText").value="";$("cMsg").textContent="Complaint submitted.";renderComplaints();refreshBell(false)}
+function renderComplaints(){
+  if(!me)return;const L=me.role==="leader",list=db.complaints.filter(c=>L||c.by===me.name);
+  $("cmpTitle").textContent=L?"📂 All Cases":"📂 My Cases";
+  $("cmpList").innerHTML=!list.length?"<p>No cases yet.</p>":`<div class="tw"><table><tr><th>Date</th><th>By</th><th>Case</th><th>Status</th></tr>`+list.map(c=>`<tr><td>${esc(c.date)}</td><td>${esc(c.by)}</td>
+    <td>${esc(c.text)}${c.note?`<br><small>Leader note: ${esc(c.note)}</small>`:""}${L&&c.status==="Open"?`<input id="cn-${c.id}" placeholder="Note (optional)"><button class="done" onclick="resolveC('${c.id}')">Mark Resolved</button>`:""}</td>
+    <td class="${c.status==="Open"?"no":"ok"}">${c.status}</td></tr>`).join("")+"</table></div>";
+}
+function resolveC(id){if(me.role!=="leader")return;const c=db.complaints.find(x=>x.id===id);if(c){c.status="Resolved";c.note=$("cn-"+id).value.trim();save();renderComplaints();refreshBell(false)}}
+
+/* Gallery: shared for everyone when Firebase config is filled, otherwise saved only in this browser */
+const FB={}; /* paste your Firebase config here: {apiKey:"...",authDomain:"...",projectId:"...",appId:"..."} */
+let fs=null,photos=db.photos||[];
+try{if(FB.apiKey&&window.firebase){firebase.initializeApp(FB);fs=firebase.firestore();
+ fs.collection("photos").orderBy("ts","desc").onSnapshot(s=>{photos=s.docs.map(d=>Object.assign({id:d.id},d.data()));renderGallery()})}}catch(e){fs=null}
+function addPhoto(){
+ const f=$("gCam").files[0]||$("gFile").files[0];
+ $("gMsg").textContent="";if(!f||!f.type.startsWith("image/")){$("gMsg").textContent="⚠️ Take or choose a photo first.";return}$("gMsg").textContent="⏳ Uploading...";
+ shrink(f,url=>{const p={by:me.name,cap:$("gCap").value.trim(),date:today(),ts:Date.now(),img:url};
+  if(fs)fs.collection("photos").add(p).catch(e=>{$("gMsg").textContent="⚠️ Upload failed: "+e.message});
+  else{p.id=p.ts+"";photos.unshift(p);db.photos=photos;save();renderGallery()}
+  $("gCam").value=$("gFile").value=$("gCap").value="";$("gMsg").textContent="✅ Photo added!"},m=>{$("gMsg").textContent="⚠️ "+m})}
+function delPhoto(id){
+ const p=photos.find(x=>x.id===id);if(!p||(me.role!=="leader"&&p.by!==me.name))return;
+ if(fs)fs.collection("photos").doc(id).delete();else{photos=photos.filter(x=>x.id!==id);db.photos=photos;save();renderGallery()}}
+function renderGallery(){
+ if(!me)return;
+ $("gNote").textContent=fs?"Shared: everyone who logs in can see these photos.":"Local mode: photos are saved only in this browser (Firebase not set up).";
+ $("gGrid").innerHTML=!photos.length?"<p>No photos yet.</p>":photos.map(p=>`<div class="item" style="margin:0;padding:8px"><img src="${p.img}" alt="Team photo" style="margin:0 0 6px;width:100%"><small>${esc(p.by)} • ${esc(p.date)}</small>${p.cap?`<p style="margin:4px 0">${esc(p.cap)}</p>`:""}${(me.role==="leader"||p.by===me.name)?`<button class="reject" onclick="delPhoto('${p.id}')">Delete</button>`:""}</div>`).join("")}
+
+/* Fines */
+function addFine(){
+  if(me.role!=="leader")return;const a=+$("fAmt").value,r=$("fReason").value.trim();
+  if(!a||a<1||!r){alert("Enter amount and reason.");return}
+  db.fines.push({id:Date.now()+"",who:$("fWho").value,amount:a,reason:r,date:$("fDate").value,paid:false});save();$("fAmt").value=$("fReason").value="";renderFines()}
+function payFine(id){if(me.role!=="leader")return;const f=db.fines.find(x=>x.id===id);if(f){f.paid=true;save();renderFines()}}
+function renderFines(){
+  if(!me)return;const L=me.role==="leader",list=db.fines.filter(f=>L||f.who===me.name);
+  const sum=p=>list.filter(f=>f.paid===p).reduce((s,f)=>s+f.amount,0);
+  $("fSum").innerHTML=`Collected: <b>₹${sum(true)}</b> | Pending: <b>₹${sum(false)}</b>`;
+  $("fList").innerHTML=!list.length?"<p>No fines yet.</p>":`<table><tr><th>Date</th><th>Member</th><th>Reason</th><th>₹</th><th>Status</th></tr>`+list.map(f=>`<tr><td>${esc(f.date)}</td><td>${esc(f.who)}</td><td>${esc(f.reason)}</td><td>${f.amount}</td>
+    <td>${f.paid?'<span class="ok">Paid</span>':`<span class="no">Pending</span>${L?`<button class="done" onclick="payFine('${f.id}')">Mark Paid</button>`:""}`}</td></tr>`).join("")+"</table>";
+}
+</script>
+</body>
+</html>
